@@ -5,3 +5,5 @@ authors = ["bpopadiuk <pboris@pdx.edu>"]
 edition = "2018"
 
 [dependencies]
+migrate_table = { path = "./migrate_table" }
+migrate_table_derive = { path = "./migrate_table/migrate_table_derive" }

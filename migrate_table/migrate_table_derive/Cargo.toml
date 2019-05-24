@@ -1,0 +1,12 @@
+[lib]
+proc-macro = true
+
+[package]
+name = "migrate_table_derive"
+version = "0.1.0"
+authors = ["bpopadiuk <pboris@pdx.edu>"]
+edition = "2018"
+
+[dependencies]
+quote = "0.6.3"
+syn = "0.14.4"
