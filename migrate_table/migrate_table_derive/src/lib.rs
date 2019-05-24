@@ -14,7 +14,7 @@ pub fn migrate_table_derive(input: TokenStream) -> TokenStream {
 fn impl_migrate_table(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
     let data = &ast.data;
-    let fields = field_names(data).unwrap();
+    let fields = field_names(data).expect("ERROR: rsorm can only migrate structs");
     let gen = quote! {
         impl MigrateTable for #name {
             fn migrate_table() {
