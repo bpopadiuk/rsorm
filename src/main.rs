@@ -11,8 +11,11 @@ struct Model {
 }
 
 fn main() {
+    // Here's a demonstration of what the MigrateTable macro is doing for us
     let (name, fields) = Model::generate_schema();
+    println!("NAME: {:?}\nFIELDS: {:?}", name, fields);
+
+    // Usually we'll just be calling it as an argument to the create_table() method though
     let db = lib::DB::new("some_dsn_here");
-    db.create_table(&fields).unwrap();
-    println!("NAME: {:?}\nFIELDS: {:?}", name, fields)
+    db.create_table(Model::generate_schema()).unwrap();
 }

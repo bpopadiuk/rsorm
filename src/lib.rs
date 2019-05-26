@@ -15,7 +15,9 @@ impl DB {
         // TODO: use some other crate to sever connection to db
     }
 
-    pub fn create_table(&self, fields: &Vec<(String, String)>) -> Result<(), &'static str> {
+    pub fn create_table(&self, schema: (String, Vec<(String, String)>)) -> Result<(), &'static str> {
+        let _name = schema.0; // named with underbar just to make compiler happy, eventually we'll be using it and that will change
+        let fields = schema.1;
         let legal_types: std::collections::HashSet<String> =
             vec!["String".to_string(), "u64".to_string(), "f64".to_string()]
                 .into_iter()
