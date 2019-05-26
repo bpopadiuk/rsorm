@@ -27,7 +27,7 @@ fn main() {
     db.connect();
     db.create_table(Model::generate_schema()).unwrap();
 
-    // Example of create_table returning an error when based a model struct containing an illegal type
+    // Example of create_table returning an error when passed a model struct containing an illegal type
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
 
