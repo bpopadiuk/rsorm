@@ -1,3 +1,4 @@
+#![recursion_limit = "1024"]
 extern crate proc_macro;
 
 use crate::proc_macro::TokenStream;
@@ -17,8 +18,15 @@ fn impl_migrate_table(ast: &syn::DeriveInput) -> TokenStream {
     let fields = field_names(data).expect("ERROR: rsorm can only migrate structs");
     let gen = quote! {
         impl MigrateTable for #name {
-            fn migrate_table() {
-                println!("STRUCT NAME: {}\nFIELDS: {}", stringify!(#name), stringify!(#fields));
+            fn generate_schema() -> (String, Vec<(String, String)>) {
+                let name = String::from(stringify!(#name));
+                let field_str = stringify!(#fields);
+                let fs = field_str.split(" ").collect::<Vec<&str>>();
+                let mut field_tups = Vec::new();
+                for i in (3..fs.len()).step_by(4) {
+                    field_tups.push((String::from(fs[i-2]), String::from(fs[i])));
+                }
+                (name, field_tups)
             }
         }
     };

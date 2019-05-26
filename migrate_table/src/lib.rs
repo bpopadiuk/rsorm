@@ -1,3 +1,3 @@
 pub trait MigrateTable {
-    fn migrate_table();
+    fn generate_schema() -> (String, Vec<(String, String)>);
 }

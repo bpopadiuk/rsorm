@@ -9,5 +9,6 @@ struct Model{
 }
 
 fn main() {
-    Model::migrate_table();
+    let (name, fields) = Model::generate_schema();
+    println!("NAME: {:?}\nFIELDS: {:?}", name, fields)
 }
