@@ -2,8 +2,8 @@
 extern crate proc_macro;
 
 use crate::proc_macro::TokenStream;
-use syn;
 use quote::quote;
+use syn;
 
 #[proc_macro_derive(MigrateTable)]
 pub fn migrate_table_derive(input: TokenStream) -> TokenStream {
@@ -38,7 +38,7 @@ fn field_names(data: &syn::Data) -> Result<syn::Fields, &'static str> {
         syn::Data::Struct(data) => {
             return Ok(data.fields.clone());
         }
-        _ => { 
+        _ => {
             return Err("invalid type");
         }
     }

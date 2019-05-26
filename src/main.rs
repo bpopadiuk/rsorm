@@ -4,7 +4,7 @@ mod lib;
 
 #[allow(dead_code)]
 #[derive(MigrateTable)]
-struct Model{
+struct Model {
     name: String,
     age: u64,
     birthday: u64,
