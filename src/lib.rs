@@ -48,7 +48,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn select<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
+    pub fn select<T>(&self, table: &str, object: &mut Vec<T>) -> Result<(), String> {
         // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
         // we can use 'table' as a key to self.tables so that we know how to generate our query.
         // we'll need some kind of macro to generate the code to populate those fields with the values from the query result though... 

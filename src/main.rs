@@ -42,8 +42,9 @@ fn main() {
     let result2 = db.insert("nonexistent", &mut obj);
     assert!(result2.is_err());
 
-    let mut obj = Model::default();
-    db.select("Model", &mut obj).unwrap();
+    //let mut obj = Model::default();
+    let mut obj_vec: Vec<Model> = Vec::new();
+    db.select("Model", &mut obj_vec).unwrap();
 
     db.close();
 }
