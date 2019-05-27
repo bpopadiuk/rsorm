@@ -3,7 +3,7 @@ use migrate_table_derive::MigrateTable;
 mod lib;
 
 #[allow(dead_code)]
-#[derive(MigrateTable, Default)]
+#[derive(MigrateTable)]
 struct Model {
     name: String,
     age: u64,
@@ -11,7 +11,7 @@ struct Model {
 }
 
 #[allow(dead_code)]
-#[derive(MigrateTable, Default)]
+#[derive(MigrateTable)]
 struct BadModel {
     name: String,
     illegal: u8,
@@ -42,7 +42,6 @@ fn main() {
     let result2 = db.insert("nonexistent", &mut obj);
     assert!(result2.is_err());
 
-    //let mut obj = Model::default();
     let mut obj_vec: Vec<Model> = Vec::new();
     db.select("Model", &mut obj_vec).unwrap();
 
