@@ -7,3 +7,7 @@ edition = "2018"
 [dependencies]
 migrate_table = { path = "./migrate_table" }
 migrate_table_derive = { path = "./migrate_table/migrate_table_derive" }
+
+[dependencies.rusqlite]
+version = "0.18.0"
+features = ["bundled"]
