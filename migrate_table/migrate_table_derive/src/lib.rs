@@ -5,6 +5,11 @@ use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn;
 
+#[proc_macro]
+pub fn build_struct(fields: TokenStream) -> TokenStream {
+    fields
+}
+
 /// A macro to generate a schema that describes the type deriving the macro.
 /// The schema is passed to DB's create_table() method which interacts with sqlite
 /// 

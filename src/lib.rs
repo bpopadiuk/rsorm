@@ -1,9 +1,13 @@
+extern crate proc_macro;
 use std::collections::{ HashSet, HashMap };
+use migrate_table_derive::build_struct;
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
 }
+
+build_struct!("table");
 
 impl DB {
     pub fn new(dsn: &'static str) -> DB {
@@ -55,8 +59,20 @@ impl DB {
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+
+        build_struct!(table);
         Ok(())
     }
 
-
+    fn build_struct_tokens(&self, table: &str) -> proc_macro::TokenStream {
+        let mut tokens = table.to_string();
+        tokens.push_str("struct { ");
+        let fields = self.tables.get(table).unwrap();
+        for f in fields {
+            tokens.push_str(&format!("{}: {}, ", f.0, f.1));
+        }
+        
+        tokens.push_str(" }");
+        tokens.parse().unwrap()
+    }
 }
