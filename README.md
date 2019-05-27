@@ -21,7 +21,7 @@ struct Model {
 The `DB` type defined in `src/lib.rs` provides simple methods for connecting to a database, creating tables, inserting values, and retrieving values. The following illustrates a common use pattern: 
 
 ```rust
-let mut db = lib::DB::new("sqlite:/opt/databases/mydb.sq3");
+let mut db = rsorm::DB::new("sqlite:/opt/databases/mydb.sq3");
 db.connect();
 db.create_table(Model::generate_schema()).unwrap();
 
