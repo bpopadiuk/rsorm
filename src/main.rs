@@ -3,15 +3,15 @@ use migrate_table_derive::MigrateTable;
 mod lib;
 
 #[allow(dead_code)]
-#[derive(MigrateTable)]
+#[derive(MigrateTable, Default)]
 struct Model {
     name: String,
     age: u64,
-    birthday: u64,
+    birthday: String,
 }
 
 #[allow(dead_code)]
-#[derive(MigrateTable)]
+#[derive(MigrateTable, Default)]
 struct BadModel {
     name: String,
     illegal: u8,
@@ -27,9 +27,23 @@ fn main() {
     db.connect();
     db.create_table(Model::generate_schema()).unwrap();
 
+    let mut obj = Model {
+        name: String::from("boris"),
+        age: 65,
+        birthday: String::from("sometime"),
+    };
+
     // Example of create_table returning an error when passed a model struct containing an illegal type
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
+
+    db.insert("Model", &mut obj).unwrap();
+    // This one should fail...
+    let result2 = db.insert("nonexistent", &mut obj);
+    assert!(result2.is_err());
+
+    let mut obj = Model::default();
+    db.select("Model", &mut obj).unwrap();
 
     db.close();
 }

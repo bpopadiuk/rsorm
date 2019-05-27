@@ -38,4 +38,26 @@ impl DB {
         self.tables.insert(name, fields);
         Ok(())
     }
+
+    pub fn insert<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
+        // called like this: db.insert("Model", modelinstance)
+        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
+        // we'll still need some kind of macro to generate the code to retrieve each field's values though...
+        if !self.tables.contains_key(table) {
+            return Err(format!("DB does not contain table: {}", table));
+        }
+        Ok(())
+    }
+
+    pub fn select<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
+        // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
+        // we can use 'table' as a key to self.tables so that we know how to generate our query.
+        // we'll need some kind of macro to generate the code to populate those fields with the values from the query result though... 
+        if !self.tables.contains_key(table) {
+            return Err(format!("DB does not contain table: {}", table));
+        }
+        Ok(())
+    }
+
+
 }
