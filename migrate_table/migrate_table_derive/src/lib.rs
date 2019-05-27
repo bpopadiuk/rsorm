@@ -5,6 +5,11 @@ use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn;
 
+/// A macro to generate a schema that describes the type deriving the macro.
+/// The schema is passed to DB's create_table() method which interacts with sqlite
+/// 
+/// This implementation pattern closely follows a pattern from the Rust
+/// docs: https://doc.rust-lang.org/book/ch19-06-macros.html#how-to-write-a-custom-derive-macro
 #[proc_macro_derive(MigrateTable)]
 pub fn migrate_table_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
