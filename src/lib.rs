@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-use std::collections::HashMap;
+use std::collections::{ HashSet, HashMap };
 
 pub struct DB {
     dsn: &'static str,
