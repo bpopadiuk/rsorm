@@ -3,7 +3,7 @@ use migrate_table_derive::MigrateTable;
 mod lib;
 
 #[allow(dead_code)]
-#[derive(MigrateTable)]
+#[derive(MigrateTable, Clone)]
 struct Model {
     name: String,
     age: u64,

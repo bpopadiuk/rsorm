@@ -1,11 +1,12 @@
 #![recursion_limit = "1024"]
 extern crate proc_macro;
 
-use crate::proc_macro::TokenStream;
+use proc_macro_hack::proc_macro_hack;
+use proc_macro::TokenStream;
 use quote::quote;
 use syn;
 
-#[proc_macro]
+#[proc_macro_hack]
 pub fn build_struct(fields: TokenStream) -> TokenStream {
     fields
 }

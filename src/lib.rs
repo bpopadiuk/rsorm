@@ -1,13 +1,11 @@
 extern crate proc_macro;
 use std::collections::{ HashSet, HashMap };
-use migrate_table_derive::build_struct;
+use migrate_table::{MigrateTable, build_struct};
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
 }
-
-build_struct!("table");
 
 impl DB {
     pub fn new(dsn: &'static str) -> DB {
@@ -52,7 +50,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn select<T>(&self, table: &str, object: &mut Vec<T>) -> Result<(), String> {
+    pub fn select<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
         // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
         // we can use 'table' as a key to self.tables so that we know how to generate our query.
         // we'll need some kind of macro to generate the code to populate those fields with the values from the query result though... 
@@ -60,19 +58,24 @@ impl DB {
             return Err(format!("DB does not contain table: {}", table));
         }
 
-        build_struct!(table);
+        let tokens: String = self.build_struct_tokens(table);
+        let e = build_struct!(tokens);
+        println!("{}", e);
+
         Ok(())
     }
 
-    fn build_struct_tokens(&self, table: &str) -> proc_macro::TokenStream {
-        let mut tokens = table.to_string();
-        tokens.push_str("struct { ");
+    fn build_struct_tokens(&self, table: &str) -> String {
+        let mut tokens = String::from("");
+        tokens.push_str(&format!("{} {{ ", table));
         let fields = self.tables.get(table).unwrap();
         for f in fields {
-            tokens.push_str(&format!("{}: {}, ", f.0, f.1));
+            tokens.push_str(&format!("{}: {}, ", f.0, "6"));
         }
         
-        tokens.push_str(" }");
-        tokens.parse().unwrap()
+        tokens.pop();
+        tokens.pop();
+        tokens.push_str(" };");
+        tokens
     }
 }
