@@ -60,7 +60,7 @@ impl DB {
 
         let tokens: String = self.build_struct_tokens(table);
         let e = build_struct!(tokens);
-        println!("{}", e);
+        println!("{:?}", e);
 
         Ok(())
     }

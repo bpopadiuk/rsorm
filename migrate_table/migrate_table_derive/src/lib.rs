@@ -8,7 +8,10 @@ use syn;
 
 #[proc_macro_hack]
 pub fn build_struct(fields: TokenStream) -> TokenStream {
-    fields
+    let expr = syn::parse_macro_input!(fields as syn::Expr);
+    TokenStream::from(quote! {
+        #expr
+    })
 }
 
 /// A macro to generate a schema that describes the type deriving the macro.
