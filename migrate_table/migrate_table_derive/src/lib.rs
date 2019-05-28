@@ -1,6 +1,6 @@
 #![recursion_limit = "1024"]
 extern crate proc_macro;
-
+use std::fmt::Debug;
 use crate::proc_macro::TokenStream;
 use quote::quote;
 use syn;
@@ -32,6 +32,9 @@ fn impl_migrate_table(ast: &syn::DeriveInput) -> TokenStream {
                     field_tups.push((String::from(fs[i-2]), String::from(fs[i])));
                 }
                 (name, field_tups)
+            }
+            fn insert_to_table<T>(object) -> String{
+                return format!("GOT HERE");
             }
         }
     };
