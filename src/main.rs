@@ -25,7 +25,7 @@ fn main() {
 
     // Usually we'll just be calling it as an argument to the create_table() method though
     let mut db = lib::DB::new("some_dsn_here");
-    db.connect();
+    //db.connect();
     db.create_table(Model::generate_schema()).unwrap();
 
     let mut obj = Model {
@@ -38,7 +38,7 @@ fn main() {
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
 
-    db.insert("Model", &mut obj).unwrap();
+    //db.insert("Model", &obj.name, &obj.age, &obj.birthday).unwrap();
     // This one should fail...
     let result2 = db.insert("nonexistent", &mut obj);
     assert!(result2.is_err());

@@ -1,10 +1,13 @@
 extern crate proc_macro;
 use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
+use rusqlite::types::ToSql;
+use rusqlite::{Connection, NO_PARAMS};
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
+    conn: Connection,
 }
 
 impl DB {
@@ -12,14 +15,12 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
+            conn: Connection::open("testDB").unwrap(),
         }
     }
 
-    pub fn connect(&self) {
-        // TODO: use some other crate to connect to the db using the db's DSN
-    }
-
-    pub fn close(&self) {
+    pub fn close(self) {
+        self.conn.close().unwrap()
         // TODO: use some other crate to sever connection to db
     }
 
@@ -42,6 +43,8 @@ impl DB {
         }
 
         // TODO: this function should now use the name and fields arguments to make a SQL call to create a table
+        let ts = table_string(&name, &fields);
+        self.conn.execute(&ts, NO_PARAMS).unwrap();
         self.tables.insert(name, fields);
         Ok(())
     }
@@ -98,3 +101,13 @@ impl DB {
         json 
     }
 }
+
+fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
+        let mut values = String::from("");
+        for f in fields {
+            values.push_str(&format!(" {} {},", f.0, f.1));
+        }
+
+        values.pop();
+        format!("CREATE TABLE {} ({} );", name, values)
+    }
