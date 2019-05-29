@@ -1,18 +1,9 @@
 #![recursion_limit = "1024"]
 extern crate proc_macro;
 
-use proc_macro_hack::proc_macro_hack;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn;
-
-#[proc_macro_hack]
-pub fn build_struct(fields: TokenStream) -> TokenStream {
-    let expr = syn::parse_macro_input!(fields as syn::Expr);
-    TokenStream::from(quote! {
-        #expr
-    })
-}
 
 /// A macro to generate a schema that describes the type deriving the macro.
 /// The schema is passed to DB's create_table() method which interacts with sqlite

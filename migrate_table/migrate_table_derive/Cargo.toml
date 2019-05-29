@@ -10,4 +10,3 @@ edition = "2018"
 [dependencies]
 quote = "0.6.3"
 syn = "0.15"
-proc-macro-hack = "0.5"

@@ -1,9 +1,10 @@
 use migrate_table::MigrateTable;
 use migrate_table_derive::MigrateTable;
+use serde::Deserialize;
 mod lib;
 
 #[allow(dead_code)]
-#[derive(MigrateTable, Clone)]
+#[derive(MigrateTable, Deserialize, Debug)]
 struct Model {
     name: String,
     age: u64,
@@ -28,9 +29,9 @@ fn main() {
     db.create_table(Model::generate_schema()).unwrap();
 
     let mut obj = Model {
-        name: String::from("boris"),
+        name: "boris".to_string(),
         age: 65,
-        birthday: String::from("sometime"),
+        birthday: "someday".to_string(),
     };
 
     // Example of create_table returning an error when passed a model struct containing an illegal type
@@ -42,8 +43,8 @@ fn main() {
     let result2 = db.insert("nonexistent", &mut obj);
     assert!(result2.is_err());
 
-    let mut obj_vec: Vec<Model> = Vec::new();
-    db.select("Model", &mut obj_vec).unwrap();
+    let object: Model = db.select("Model").unwrap();
+    println!("{:?}", object);
 
     db.close();
 }
