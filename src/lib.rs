@@ -69,32 +69,32 @@ impl DB {
         }
 
         let fake_vals = vec!["boris", "27", "someday"]; // this is a placeholder, still need to write code to retrieve a vector of values from sql with rusqlite
-        let tokens: String = self.build_struct_json(table, fake_vals);
-        let object: T = serde_json::from_str(&*tokens).unwrap();
+        let json: String = self.build_struct_json(table, fake_vals);
+        let object: T = serde_json::from_str(&json).unwrap();
         Ok(object)
     }
 
     fn build_struct_json(&self, table: &str, vals: Vec<&str>) -> String {
-        let mut tokens = String::from("{ ");
+        let mut json = String::from("{ ");
         let fields = self.tables.get(table).unwrap();
         let mut i = 0;
         for (ident, ty) in fields {
-            tokens.push_str("\"");
-            tokens.push_str(ident);
-            tokens.push_str("\": ");
+            json.push_str("\"");
+            json.push_str(ident);
+            json.push_str("\": ");
             if *ty == String::from("String") {
-                tokens.push_str("\"");
+                json.push_str("\"");
             }
-            tokens.push_str(vals[i]);
+            json.push_str(vals[i]);
             if *ty == String::from("String") {
-                tokens.push_str("\"");
+                json.push_str("\"");
             }
-            tokens.push_str(",");
+            json.push_str(",");
             i += 1;
         }
 
-        tokens.pop();
-        tokens.push_str(" }");
-        tokens
+        json.pop();
+        json.push_str(" }");
+        json 
     }
 }
