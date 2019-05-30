@@ -41,6 +41,7 @@ fn main() {
     let result2 = db.insert("nonexistent", &mut inp);
     assert!(result2.is_err());
 
-    let out: Vec<Model> = db.select_all("Model").unwrap();
+    let mut out: Vec<Model> = Vec::new();
+    db.select_all("Model", &mut out).unwrap();
     println!("IN:  {:?}\nOUT: {:?}", inp, out);
 }

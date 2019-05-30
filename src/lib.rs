@@ -1,8 +1,6 @@
 extern crate proc_macro;
 use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
-//use rusqlite::types::ToSql;
-//use rusqlite::{params, Connection, NO_PARAMS};
 
 pub struct DB {
     dsn: &'static str,
@@ -46,7 +44,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn insert<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
+    pub fn insert<T>(&self, table: &str, objects: &mut T) -> Result<(), String> {
         // called like this: db.insert("Model", modelinstance)
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         // we'll still need some kind of macro to generate the code to retrieve each field's values though...
@@ -56,7 +54,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn select_all<T>(&self, table: &str) -> Result<Vec<T>, String>
+    pub fn select_all<T>(&self, table: &str, objects: &mut Vec<T>) -> Result<(), String>
     where
         T: DeserializeOwned,
     {
@@ -80,7 +78,7 @@ impl DB {
 
         let q_string = format!("SELECT * FROM {}", table);
         let mut vals: Vec<String> = Vec::new();
-        // this pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
+        // this query pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
         let _stmt = self
             .conn
             .iterate(&q_string, |pairs| {
@@ -92,7 +90,7 @@ impl DB {
             .unwrap();
 
         let chunks = vals.chunks(self.tables.get(table).unwrap().len());
-        let mut objects: Vec<T> = Vec::new();
+        //let mut objects: Vec<T> = Vec::new();
         for c in chunks {
             let json: String = self.build_struct_json(table, c);
             let object: T = serde_json::from_str(&json).unwrap();
@@ -107,7 +105,7 @@ impl DB {
             .execute(format!("DELETE FROM {} WHERE name = 'Jordan'", table))
             .unwrap();
 
-        Ok(objects)
+        Ok(())
     }
 
     fn build_struct_json(&self, table: &str, vals: &[String]) -> String {
