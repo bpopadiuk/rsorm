@@ -56,13 +56,23 @@ impl DB {
         Ok(())
     }
 
-    pub fn select<T>(&self, table: &str) -> Result<T, String>
+    pub fn select_all<T>(&self, table: &str) -> Result<Vec<T>, String>
     where
         T: DeserializeOwned,
     {
-
-        // stub insert since insert isn't implemented on this branch
-        self.conn.execute(format!("INSERT INTO {} VALUES ('Boris', 27, 'someday')", table)).unwrap();
+        // stub inserts since insert isn't implemented on this branch
+        self.conn
+            .execute(format!(
+                "INSERT INTO {} VALUES ('Boris', 27, 'someday')",
+                table
+            ))
+            .unwrap();
+        self.conn
+            .execute(format!(
+                "INSERT INTO {} VALUES ('Jordan', 27, 'otherday')",
+                table
+            ))
+            .unwrap();
 
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
@@ -71,20 +81,36 @@ impl DB {
         let q_string = format!("SELECT * FROM {}", table);
         let mut vals: Vec<String> = Vec::new();
         // this pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
-        let _stmt = self.conn.iterate(&q_string, |pairs| {
-            for &(_column, value) in pairs.iter() {
-                vals.push(String::from(value.unwrap()));
-            }
-            true
-        })
-        .unwrap();
+        let _stmt = self
+            .conn
+            .iterate(&q_string, |pairs| {
+                for &(_column, value) in pairs.iter() {
+                    vals.push(String::from(value.unwrap()));
+                }
+                true
+            })
+            .unwrap();
 
-        let json: String = self.build_struct_json(table, vals);
-        let object: T = serde_json::from_str(&json).unwrap();
-        Ok(object)
+        let chunks = vals.chunks(self.tables.get(table).unwrap().len());
+        let mut objects: Vec<T> = Vec::new();
+        for c in chunks {
+            let json: String = self.build_struct_json(table, c);
+            let object: T = serde_json::from_str(&json).unwrap();
+            objects.push(object);
+        }
+
+        // Delete the fake rows we inserted
+        self.conn
+            .execute(format!("DELETE FROM {} WHERE name = 'Boris'", table))
+            .unwrap();
+        self.conn
+            .execute(format!("DELETE FROM {} WHERE name = 'Jordan'", table))
+            .unwrap();
+
+        Ok(objects)
     }
 
-    fn build_struct_json(&self, table: &str, vals: Vec<String>) -> String {
+    fn build_struct_json(&self, table: &str, vals: &[String]) -> String {
         let mut json = String::from("{ ");
         let fields = self.tables.get(table).unwrap();
         let mut i = 0;
@@ -105,7 +131,7 @@ impl DB {
 
         json.pop();
         json.push_str(" }");
-        json 
+        json
     }
 
     fn table_string(&self, name: &String, fields: &Vec<(String, String)>) -> String {

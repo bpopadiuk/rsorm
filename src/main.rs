@@ -27,9 +27,9 @@ fn main() {
     let mut db = lib::DB::new("some_dsn_here");
     db.create_table(Model::generate_schema()).unwrap();
 
-    let mut obj = Model {
-        name: "boris".to_string(),
-        age: 65,
+    let mut inp = Model {
+        name: "Boris".to_string(),
+        age: 27,
         birthday: "someday".to_string(),
     };
 
@@ -38,9 +38,9 @@ fn main() {
     assert!(result.is_err());
 
     // This one should fail...
-    let result2 = db.insert("nonexistent", &mut obj);
+    let result2 = db.insert("nonexistent", &mut inp);
     assert!(result2.is_err());
 
-    let object: Model = db.select("Model").unwrap();
-    println!("{:?}", object);
+    let out: Vec<Model> = db.select_all("Model").unwrap();
+    println!("IN:  {:?}\nOUT: {:?}", inp, out);
 }
