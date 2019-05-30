@@ -1,13 +1,13 @@
 extern crate proc_macro;
 use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
-use rusqlite::types::ToSql;
-use rusqlite::{Connection, NO_PARAMS};
+//use rusqlite::types::ToSql;
+//use rusqlite::{params, Connection, NO_PARAMS};
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
-    conn: Connection,
+    conn: sqlite::Connection,
 }
 
 impl DB {
@@ -15,12 +15,12 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
-            conn: Connection::open("testDB").unwrap(),
+            conn: sqlite::open("testDB").unwrap(),
         }
     }
 
     pub fn close(self) {
-        self.conn.close().unwrap()
+        //self.conn.close().unwrap()
         // TODO: use some other crate to sever connection to db
     }
 
@@ -44,7 +44,10 @@ impl DB {
 
         // TODO: this function should now use the name and fields arguments to make a SQL call to create a table
         let ts = table_string(&name, &fields);
-        self.conn.execute(&ts, NO_PARAMS).unwrap();
+        if self.tables.contains_key(&name) {
+            return Ok(());
+        }
+        self.conn.execute(&ts).unwrap();
         self.tables.insert(name, fields);
         Ok(())
     }
@@ -63,21 +66,30 @@ impl DB {
     where
         T: DeserializeOwned,
     {
-        //where <T as std::str::FromStr>::Err: std::fmt::Debug, T: FromStr {
-        // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
-        // we can use 'table' as a key to self.tables so that we know how to generate our query.
-        // we'll need some kind of macro to generate the code to populate those fields with the values from the query result though...
+
+        // stub insert since insert isn't implemented on this branch
+        self.conn.execute(format!("INSERT INTO {} VALUES ('Boris', 27, 'someday')", table)).unwrap();
+
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
 
-        let fake_vals = vec!["boris", "27", "someday"]; // this is a placeholder, still need to write code to retrieve a vector of values from sql with rusqlite
-        let json: String = self.build_struct_json(table, fake_vals);
+        let q_string = format!("SELECT * FROM {}", table);
+        let mut vals: Vec<String> = Vec::new();
+        let _stmt = self.conn.iterate(&q_string, |pairs| {
+            for &(_column, value) in pairs.iter() {
+                vals.push(String::from(value.unwrap()));
+            }
+            true
+        })
+        .unwrap();
+
+        let json: String = self.build_struct_json(table, vals);
         let object: T = serde_json::from_str(&json).unwrap();
         Ok(object)
     }
 
-    fn build_struct_json(&self, table: &str, vals: Vec<&str>) -> String {
+    fn build_struct_json(&self, table: &str, vals: Vec<String>) -> String {
         let mut json = String::from("{ ");
         let fields = self.tables.get(table).unwrap();
         let mut i = 0;
@@ -88,7 +100,7 @@ impl DB {
             if *ty == String::from("String") {
                 json.push_str("\"");
             }
-            json.push_str(vals[i]);
+            json.push_str(&vals[i]);
             if *ty == String::from("String") {
                 json.push_str("\"");
             }
@@ -109,5 +121,5 @@ fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
         }
 
         values.pop();
-        format!("CREATE TABLE {} ({} );", name, values)
+        format!("create table if not exists {} ({} );", name, values)
     }

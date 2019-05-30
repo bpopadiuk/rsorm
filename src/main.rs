@@ -38,7 +38,6 @@ fn main() {
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
 
-    //db.insert("Model", &obj.name, &obj.age, &obj.birthday).unwrap();
     // This one should fail...
     let result2 = db.insert("nonexistent", &mut obj);
     assert!(result2.is_err());
