@@ -25,7 +25,6 @@ fn main() {
 
     // Usually we'll just be calling it as an argument to the create_table() method though
     let mut db = lib::DB::new("some_dsn_here");
-    //db.connect();
     db.create_table(Model::generate_schema()).unwrap();
 
     let mut obj = Model {

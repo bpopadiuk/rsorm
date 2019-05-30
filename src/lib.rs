@@ -43,7 +43,7 @@ impl DB {
         }
 
         // TODO: this function should now use the name and fields arguments to make a SQL call to create a table
-        let ts = table_string(&name, &fields);
+        let ts = self.table_string(&name, &fields);
         if self.tables.contains_key(&name) {
             return Ok(());
         }
@@ -112,9 +112,8 @@ impl DB {
         json.push_str(" }");
         json 
     }
-}
 
-fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
+    fn table_string(&self, name: &String, fields: &Vec<(String, String)>) -> String {
         let mut values = String::from("");
         for f in fields {
             values.push_str(&format!(" {} {},", f.0, f.1));
@@ -123,3 +122,4 @@ fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
         values.pop();
         format!("create table if not exists {} ({} );", name, values)
     }
+}
