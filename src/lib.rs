@@ -76,6 +76,7 @@ impl DB {
 
         let q_string = format!("SELECT * FROM {}", table);
         let mut vals: Vec<String> = Vec::new();
+        // this pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
         let _stmt = self.conn.iterate(&q_string, |pairs| {
             for &(_column, value) in pairs.iter() {
                 vals.push(String::from(value.unwrap()));
