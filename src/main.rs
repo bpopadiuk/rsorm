@@ -43,6 +43,4 @@ fn main() {
 
     let object: Model = db.select("Model").unwrap();
     println!("{:?}", object);
-
-    db.close();
 }

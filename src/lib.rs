@@ -19,16 +19,11 @@ impl DB {
         }
     }
 
-    pub fn close(self) {
-        //self.conn.close().unwrap()
-        // TODO: use some other crate to sever connection to db
-    }
-
     pub fn create_table(
         &mut self,
         schema: (String, Vec<(String, String)>),
     ) -> Result<(), &'static str> {
-        let name = schema.0; // named with underbar just to make compiler happy, eventually we'll be using it and that will change
+        let name = schema.0;
         let fields = schema.1;
         let legal_types: HashSet<String> =
             vec!["String".to_string(), "u64".to_string(), "f64".to_string()]
@@ -42,7 +37,6 @@ impl DB {
             }
         }
 
-        // TODO: this function should now use the name and fields arguments to make a SQL call to create a table
         let ts = self.table_string(&name, &fields);
         if self.tables.contains_key(&name) {
             return Ok(());
