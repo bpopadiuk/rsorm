@@ -69,11 +69,12 @@ impl DB {
         }
         Ok(())
     }
-    pub fn delete(&self, table: &str, data: (String, String)) -> Result<(), String> {
+    pub fn delete(&self, table: &str, data:(Vec<String>, Vec<String>)) -> Result<(), String> {
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
         let ds = delete_string(table, data);
+        self.conn.execute(&ds, NO_PARAMS).unwrap();
         Ok(())
     }
 
@@ -104,36 +105,35 @@ fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     return format!("INSERT INTO {} {} VALUES {}", name, fields, values);
 }
 
-fn delete_string(name: &str, data: (String, String)) -> String {
-    let mut params = String::from("");
-    
-    return format!("DELETE FROM {} WHERE {}", data.0, data.1);
+fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let mut conditions = String::from("(");
+    for i in 0..(data.0).len() {
+        conditions.push_str(&format!("{}={} and ", (data.0)[i], (data.1)[i]))
+    }
+    println!("{}", conditions);
+    let trunc_val = conditions.len()-4;
+    conditions.truncate(trunc_val);
+    conditions.push(')');
+    println!("{}", conditions);
+
+    return format!("DELETE FROM {} WHERE {}", name, conditions);
 }
 
 
-//macro for parsing the options for the insert comand
-//reads in tokes in the tokens directly, this can not handle any objects or refrenceces
-//tthe data will be entered directly as is, additonally the l
+//macro that parses user options for a sql! command
+//will parse tokens in the form of "field1 = value1, field2=value2, field3=value3"
+//returns a tuple of string vectors, one for fields, one for values
 #[macro_export]
 macro_rules! sql {
     ($($x:tt = $y:tt), *) => {
         {
-            //let mut s1: String = "(".to_string();
-            //let mut s2: String = "(".to_string();
             let mut fields:Vec<String> = Vec::new();
             let mut data: Vec<String> = Vec::new();
             $(
-                //s1.push_str(stringify!($x,));
-                //s2.push_str(&z);
                 fields.push(stringify!($x).to_string());
                 let z = stringify!($y).replace("\"","'");
                 data.push(z);
             )*
-            //s1.pop();
-            //s2.pop();
-            //s1.push_str(")");
-            //s2.push_str(")");
-            //(s1, s2)
             (fields, data)
         }
     };
