@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
-use rusqlite::types::ToSql;
-use rusqlite::{Connection, NO_PARAMS};
+use sqlite;
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
-    conn: Connection,
+    conn: sqlite::Connection,
 }
 
 impl DB {
@@ -14,13 +12,8 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
-            conn: Connection::open("testDB.db").unwrap(),
+            conn: sqlite::open(dsn).unwrap()
         }
-    }
-
-    pub fn close(self) {
-        self.conn.close().unwrap()
-        // TODO: use some other crate to sever connection to db
     }
 
     pub fn create_table(
@@ -43,7 +36,7 @@ impl DB {
 
         // TODO: this function should now use the name and fields arguments to make a SQL call to create a table
         let ts = table_string(&name, &fields);
-        self.conn.execute(&ts, NO_PARAMS).unwrap();
+        self.conn.execute(&ts).unwrap();
         self.tables.insert(name, fields);
         Ok(())
     }
@@ -56,7 +49,7 @@ impl DB {
             return Err(format!("DB does not contain table: {}", table));
         }
         let is = insert_string(table, data);
-        self.conn.execute(&is, NO_PARAMS).unwrap();
+        self.conn.execute(&is).unwrap();
         Ok(())
     }
     
@@ -70,11 +63,13 @@ impl DB {
         Ok(())
     }
     pub fn delete(&self, table: &str, data:(Vec<String>, Vec<String>)) -> Result<(), String> {
+        //called like this: db.delete("Model", sql!(field1=condition1, field2=condition2))
+        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
         let ds = delete_string(table, data);
-        self.conn.execute(&ds, NO_PARAMS).unwrap();
+        self.conn.execute(&ds).unwrap();
         Ok(())
     }
 
@@ -110,12 +105,9 @@ fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     for i in 0..(data.0).len() {
         conditions.push_str(&format!("{}={} and ", (data.0)[i], (data.1)[i]))
     }
-    println!("{}", conditions);
     let trunc_val = conditions.len()-4;
     conditions.truncate(trunc_val);
     conditions.push(')');
-    println!("{}", conditions);
-
     return format!("DELETE FROM {} WHERE {}", name, conditions);
 }
 
