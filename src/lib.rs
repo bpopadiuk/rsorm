@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-
+use std::fmt::Debug;
 use rusqlite::types::ToSql;
 use rusqlite::{Connection, NO_PARAMS};
 
@@ -49,18 +49,17 @@ impl DB {
     }
 
     pub fn insert(&self, table: &str, data: (String, String)) -> Result<(), String> {
-        // called like this: db.insert("Model", modelinstance)
+        // called like this: db.insert("Model", sql!(field1= data1, field2= data2, field3=data3))
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         // we'll still need some kind of macro to generate the code to retrieve each field's values though...
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
         let is = insert_string(table, data);
-        println!("{}", is);
         self.conn.execute(&is, NO_PARAMS).unwrap();
         Ok(())
     }
-
+  
     pub fn select<T>(&self, table: &str, object: &mut Vec<T>) -> Result<(), String> {
         // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
         // we can use 'table' as a key to self.tables so that we know how to generate our query.
@@ -79,17 +78,22 @@ fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
         }
 
         values.pop();
-        format!("CREATE TABLE {} ({} );", name, values)
+        format!("CREATE TABLE IF NOT EXISTS {} ({} );", name, values)
     }
 
 fn insert_string(name: &str, data: (String, String)) -> String {
     return format!("INSERT INTO {} {} VALUES {}", name, data.0, data.1)
 }
 
+
+//macro for parsing the options for the insert comand
+//reads in tokes in the tokens directly, this can not handle any objects or refrenceces
+//tthe data will be entered directly as is, additonally the l
 #[macro_export]
 macro_rules! sql {
-    ($($x:tt = $y:tt), *)=> {
+    ($($x:tt = $y:tt), *) => {
         {
+        
             let mut s1: String = "(".to_string();
             let mut s2: String = "(".to_string();
             $(
