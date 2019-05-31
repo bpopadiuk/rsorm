@@ -1,9 +1,10 @@
 use migrate_table::MigrateTable;
 use migrate_table_derive::MigrateTable;
+use serde::Deserialize;
 mod lib;
 
 #[allow(dead_code)]
-#[derive(MigrateTable)]
+#[derive(MigrateTable, Deserialize, Debug)]
 struct Model {
     name: String,
     age: u64,
@@ -24,26 +25,23 @@ fn main() {
 
     // Usually we'll just be calling it as an argument to the create_table() method though
     let mut db = lib::DB::new("some_dsn_here");
-    //db.connect();
     db.create_table(Model::generate_schema()).unwrap();
 
-    let mut obj = Model {
-        name: String::from("boris"),
-        age: 65,
-        birthday: String::from("sometime"),
+    let mut inp = Model {
+        name: "Boris".to_string(),
+        age: 27,
+        birthday: "someday".to_string(),
     };
 
     // Example of create_table returning an error when passed a model struct containing an illegal type
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
 
-    //db.insert("Model", &obj.name, &obj.age, &obj.birthday).unwrap();
     // This one should fail...
-    let result2 = db.insert("nonexistent", &mut obj);
+    let result2 = db.insert("nonexistent", &mut inp);
     assert!(result2.is_err());
 
-    let mut obj_vec: Vec<Model> = Vec::new();
-    db.select("Model", &mut obj_vec).unwrap();
-
-    db.close();
+    let mut out: Vec<Model> = Vec::new();
+    db.select_all("Model", &mut out).unwrap();
+    println!("IN:  {:?}\nOUT: {:?}", inp, out);
 }
