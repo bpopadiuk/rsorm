@@ -48,7 +48,7 @@ impl DB {
         Ok(())
     }
 
-    pub fn insert(&self, table: &str, data: (String, String)) -> Result<(), String> {
+    pub fn insert(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
         // called like this: db.insert("Model", sql!(field1= data1, field2= data2, field3=data3))
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         // we'll still need some kind of macro to generate the code to retrieve each field's values though...
@@ -59,7 +59,7 @@ impl DB {
         self.conn.execute(&is, NO_PARAMS).unwrap();
         Ok(())
     }
-  
+    
     pub fn select<T>(&self, table: &str, object: &mut Vec<T>) -> Result<(), String> {
         // called like this: db.select("Model", modelinstance), where modelinstance is initilized to default values
         // we can use 'table' as a key to self.tables so that we know how to generate our query.
@@ -69,6 +69,15 @@ impl DB {
         }
         Ok(())
     }
+    pub fn delete(&self, table: &str, data: (String, String)) -> Result<(), String> {
+        if !self.tables.contains_key(table) {
+            return Err(format!("DB does not contain table: {}", table));
+        }
+        let ds = delete_string(table, data);
+        Ok(())
+    }
+
+
 }
 
 fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
@@ -81,8 +90,24 @@ fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
         format!("CREATE TABLE IF NOT EXISTS {} ({} );", name, values)
     }
 
-fn insert_string(name: &str, data: (String, String)) -> String {
-    return format!("INSERT INTO {} {} VALUES {}", name, data.0, data.1)
+fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let mut fields = String::from("(");
+    let mut values = String::from("(");
+    for i in 0..(data.0).len() {
+        fields.push_str(&format!("{},", (data.0)[i]));
+        values.push_str(&format!("{},", (data.1)[i]));
+    }
+    fields.pop();
+    values.pop();
+    fields.push(')');
+    values.push(')');
+    return format!("INSERT INTO {} {} VALUES {}", name, fields, values);
+}
+
+fn delete_string(name: &str, data: (String, String)) -> String {
+    let mut params = String::from("");
+    
+    return format!("DELETE FROM {} WHERE {}", data.0, data.1);
 }
 
 
@@ -93,19 +118,23 @@ fn insert_string(name: &str, data: (String, String)) -> String {
 macro_rules! sql {
     ($($x:tt = $y:tt), *) => {
         {
-        
-            let mut s1: String = "(".to_string();
-            let mut s2: String = "(".to_string();
+            //let mut s1: String = "(".to_string();
+            //let mut s2: String = "(".to_string();
+            let mut fields:Vec<String> = Vec::new();
+            let mut data: Vec<String> = Vec::new();
             $(
-                s1.push_str(stringify!($x,));
-                let z = stringify!( $y,).replace("\"","'");
-                s2.push_str(&z);
+                //s1.push_str(stringify!($x,));
+                //s2.push_str(&z);
+                fields.push(stringify!($x).to_string());
+                let z = stringify!($y).replace("\"","'");
+                data.push(z);
             )*
-            s1.pop();
-            s2.pop();
-            s1.push_str(")");
-            s2.push_str(")");
-            (s1, s2)
+            //s1.pop();
+            //s2.pop();
+            //s1.push_str(")");
+            //s2.push_str(")");
+            //(s1, s2)
+            (fields, data)
         }
     };
 } 

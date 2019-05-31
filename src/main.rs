@@ -46,8 +46,8 @@ fn main() {
     //For Inserting items into the database, a user envokes the sql! macro
     //Since the macro reads in tokens directly, no rust object or refrences can be used
     //Any strings ot text data for the DB need to be wrapped in " "
-    let result = db.insert("Model", sql!(name="Jordan", age=27, birthday="idk"));
-    
+    let result = db.insert("Model", sql!(name="Jordan", age=32, birthday="idk"));
+
     let mut obj_vec: Vec<Model> = Vec::new();
 
     //db.select("Model", &mut obj_vec).unwrap();
