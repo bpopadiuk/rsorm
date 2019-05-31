@@ -14,7 +14,7 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
-            conn: Connection::open("testDB").unwrap(),
+            conn: Connection::open("testDB.db").unwrap(),
         }
     }
 
@@ -48,13 +48,16 @@ impl DB {
         Ok(())
     }
 
-    pub fn insert<T>(&self, table: &str, object: &mut T) -> Result<(), String> {
+    pub fn insert(&self, table: &str, data: (String, String)) -> Result<(), String> {
         // called like this: db.insert("Model", modelinstance)
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         // we'll still need some kind of macro to generate the code to retrieve each field's values though...
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+        let is = insert_string(table, data);
+        println!("{}", is);
+        self.conn.execute(&is, NO_PARAMS).unwrap();
         Ok(())
     }
 
@@ -78,3 +81,28 @@ fn table_string(name: &String, fields: &Vec<(String, String)>) -> String {
         values.pop();
         format!("CREATE TABLE {} ({} );", name, values)
     }
+
+fn insert_string(name: &str, data: (String, String)) -> String {
+    return format!("INSERT INTO {} {} VALUES {}", name, data.0, data.1)
+}
+
+#[macro_export]
+macro_rules! sql {
+    ($($x:tt = $y:tt), *)=> {
+        {
+            let mut s1: String = "(".to_string();
+            let mut s2: String = "(".to_string();
+            $(
+                s1.push_str(stringify!($x,));
+                let z = stringify!( $y,).replace("\"","'");
+                s2.push_str(&z);
+            )*
+            s1.pop();
+            s2.pop();
+            s1.push_str(")");
+            s2.push_str(")");
+            (s1, s2)
+        }
+    };
+} 
+ 

@@ -34,16 +34,16 @@ fn main() {
     };
 
     // Example of create_table returning an error when passed a model struct containing an illegal type
-    let result = db.create_table(BadModel::generate_schema());
-    assert!(result.is_err());
-
-    //db.insert("Model", &obj.name, &obj.age, &obj.birthday).unwrap();
+    //let result = db.create_table(BadModel::generate_schema());
+    //assert!(result.is_err());
+    //println!("{:?}",sql!(x=1,y=2,z="hello, world!"));
+    let result = db.insert("Model", sql!(name="Jordan Childs", age=27, birthday="idk"));
     // This one should fail...
-    let result2 = db.insert("nonexistent", &mut obj);
-    assert!(result2.is_err());
+    //let result2 = db.insert("nonexistent", &mut obj);
+    //assert!(result2.is_err());
 
     let mut obj_vec: Vec<Model> = Vec::new();
-    db.select("Model", &mut obj_vec).unwrap();
+    //db.select("Model", &mut obj_vec).unwrap();
 
     db.close();
 }
