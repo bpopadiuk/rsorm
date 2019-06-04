@@ -66,9 +66,6 @@ impl DB {
     where
         T: DeserializeOwned,
     {
-        // called like this: db.insert("Model", sql!(field1= data1, field2= data2, field3=data3))
-        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
-        // we'll still need some kind of macro to generate the code to retrieve each field's values though...
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
