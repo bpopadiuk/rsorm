@@ -52,6 +52,11 @@ impl DB {
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+
+        if self.invalid_fields(table, &data) {
+            return Err(format!("Invalid column/s for db table: {}", table));
+        }
+
         let is = insert_string(table, data);
         self.conn.execute(&is).unwrap();
         Ok(())
@@ -69,6 +74,11 @@ impl DB {
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+
+        if self.invalid_fields(table, &data) {
+            return Err(format!("Invalid column/s for db table: {}", table));
+        }
+
         let q_string = where_string(table, data);
         self.select_query(table, q_string, objects)
     }
@@ -91,6 +101,11 @@ impl DB {
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+
+        if self.invalid_fields(table, &data) {
+            return Err(format!("Invalid column/s for db table: {}", table));
+        }
+
         let ds = delete_string(table, data);
         self.conn.execute(&ds).unwrap();
         Ok(())
@@ -160,6 +175,23 @@ impl DB {
 
         Ok(())
     }
+
+    fn invalid_fields(&self, name: &str, data: &(Vec<String>, Vec<String>)) -> bool {
+        let mut invalid = true;
+        let fields = self.tables.get(name).unwrap();
+        for i in 0..(data.0).len() {
+            for f in fields {
+                if f.0 == (data.0)[i] {
+                    invalid = false
+                }
+            }
+
+            if invalid {
+                return true;
+            }
+        }
+        invalid
+    }
 }
 
 fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
@@ -214,4 +246,248 @@ macro_rules! sql {
             (fields, data)
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use migrate_table::MigrateTable;
+    use migrate_table_derive::MigrateTable;
+    use serde::Deserialize;
+
+    #[derive(MigrateTable, Deserialize)]
+    struct testModel {
+        city: String,
+        population: u64,
+        avg_age: f64,
+    }
+
+    // we have to dispatch tests from here to prevent race conditions on the db
+    // note that for these to pass you will need SQLite installed
+    #[test]
+    fn run_db_tests() {
+        test_create_badtable();
+        test_insert_valid();
+        test_insert_bad();
+        test_insert_badcolumn();
+        test_delete_nonexistent();
+        test_delete_valid();
+        test_delete_badcondition();
+        test_select_all_happy();
+        test_select_all_badtable();
+        test_select_where_happy();
+        test_select_where_badtable();
+        test_select_where_badcolumn();
+    }
+
+    fn setup() -> DB {
+        let mut db = DB::new("rsorm_test");
+        db.create_table(testModel::generate_schema()).unwrap();
+        db
+    }
+
+    fn teardown() {
+        std::fs::remove_file("rsorm_test").unwrap()
+    }
+
+    fn test_create_badtable() {
+        #[derive(MigrateTable, Deserialize)]
+        struct testBadModel {
+            city: String,
+            population: u8,
+            avg_age: f64,
+        }
+
+        let mut db = setup();
+        let result = db.create_table(testBadModel::generate_schema());
+        assert!(result.is_err());
+        teardown();
+    }
+
+    fn test_insert_valid() {
+        let db = setup();
+        let result = db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        );
+        assert!(result.is_ok());
+
+        let mut out: Vec<testModel> = Vec::new();
+        db.select_all("testModel", &mut out).unwrap();
+        assert_eq!(1, out.len());
+        teardown();
+    }
+
+    fn test_insert_bad() {
+        let db = setup();
+        let result = db.insert("Model", sql!(name = "Jordan", age = 8, birthday = "idk"));
+        assert!(result.is_err());
+        teardown();
+    }
+
+    fn test_delete_nonexistent() {
+        // this seems bad but sqlite is fine with it so it does not produce an error
+        let db = setup();
+        let result = db.delete(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        );
+        assert!(result.is_ok());
+        teardown();
+    }
+
+    fn test_insert_badcolumn() {
+        let db = setup();
+        let result = db.insert(
+            "testModel",
+            sql!(bad = "Gresham", population = 100000, avg_age = 44.3),
+        );
+        assert!(result.is_err());
+        teardown();
+    }
+
+    fn test_delete_valid() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+
+        let result = db.delete(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        );
+        assert!(result.is_ok());
+
+        let mut out: Vec<testModel> = Vec::new();
+        db.select_all("testModel", &mut out).unwrap();
+        assert_eq!(0, out.len());
+        teardown();
+    }
+
+    fn test_delete_badcondition() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+
+        let result = db.delete(
+            "testModel",
+            sql!(
+                citymispelled = "Gresham",
+                population = 100000,
+                avg_age = 44.3
+            ),
+        );
+        assert!(result.is_err());
+
+        let mut out: Vec<testModel> = Vec::new();
+        db.select_all("testModel", &mut out).unwrap();
+        assert_eq!(1, out.len());
+        teardown();
+    }
+
+    fn test_select_all_happy() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+        db.insert(
+            "testModel",
+            sql!(city = "Sandy", population = 10000, avg_age = 62.3),
+        )
+        .unwrap();
+
+        let mut out: Vec<testModel> = Vec::new();
+        let result = db.select_all("testModel", &mut out);
+        assert!(result.is_ok());
+        assert_eq!(2, out.len());
+        teardown();
+    }
+
+    fn test_select_all_badtable() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+        db.insert(
+            "testModel",
+            sql!(city = "Sandy", population = 10000, avg_age = 62.3),
+        )
+        .unwrap();
+
+        let mut out: Vec<testModel> = Vec::new();
+        let result = db.select_all("idontexist", &mut out);
+        assert!(result.is_err());
+        teardown();
+    }
+
+    fn test_select_where_happy() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+        db.insert(
+            "testModel",
+            sql!(city = "Sandy", population = 10000, avg_age = 62.3),
+        )
+        .unwrap();
+
+        let mut out: Vec<testModel> = Vec::new();
+        let result = db.select_where("testModel", &mut out, sql!(city = "Gresham"));
+        assert!(result.is_ok());
+        assert_eq!(1, out.len());
+
+        for c in out {
+            assert_eq!(c.city, "Gresham");
+        }
+        teardown();
+    }
+
+    fn test_select_where_badtable() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+        db.insert(
+            "testModel",
+            sql!(city = "Sandy", population = 10000, avg_age = 62.3),
+        )
+        .unwrap();
+
+        let mut out: Vec<testModel> = Vec::new();
+        let result = db.select_where("idontexist", &mut out, sql!(avg_age = 62.3));
+        assert!(result.is_err());
+        teardown();
+    }
+
+    fn test_select_where_badcolumn() {
+        let db = setup();
+        db.insert(
+            "testModel",
+            sql!(city = "Gresham", population = 100000, avg_age = 44.3),
+        )
+        .unwrap();
+        db.insert(
+            "testModel",
+            sql!(city = "Sandy", population = 10000, avg_age = 62.3),
+        )
+        .unwrap();
+
+        let mut out: Vec<testModel> = Vec::new();
+        let result = db.select_where("testModel", &mut out, sql!(bad = 62.3));
+        assert!(result.is_err());
+        teardown();
+    }
 }
