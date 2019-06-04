@@ -57,6 +57,22 @@ impl DB {
         Ok(())
     }
 
+    pub fn select_where<T>(
+        &self,
+        table: &str,
+        objects: &mut Vec<T>,
+        data: (Vec<String>, Vec<String>),
+    ) -> Result<(), String>
+    where
+        T: DeserializeOwned,
+    {
+        if !self.tables.contains_key(table) {
+            return Err(format!("DB does not contain table: {}", table));
+        }
+        let q_string = where_string(table, data);
+        self.select_query(table, q_string, objects)
+    }
+
     pub fn select_all<T>(&self, table: &str, objects: &mut Vec<T>) -> Result<(), String>
     where
         T: DeserializeOwned,
@@ -66,27 +82,7 @@ impl DB {
         }
 
         let q_string = format!("SELECT * FROM {}", table);
-        let mut vals: Vec<String> = Vec::new();
-        // this query pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
-        let _stmt = self
-            .conn
-            .iterate(&q_string, |pairs| {
-                for &(_column, value) in pairs.iter() {
-                    vals.push(String::from(value.unwrap()));
-                }
-                true
-            })
-            .unwrap();
-
-        let chunks = vals.chunks(self.tables.get(table).unwrap().len());
-        //let mut objects: Vec<T> = Vec::new();
-        for c in chunks {
-            let json: String = self.build_struct_json(table, c);
-            let object: T = serde_json::from_str(&json).unwrap();
-            objects.push(object);
-        }
-
-        Ok(())
+        self.select_query(table, q_string, objects)
     }
 
     pub fn delete(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
@@ -133,6 +129,37 @@ impl DB {
         values.pop();
         format!("CREATE TABLE IF NOT EXISTS {} ({} );", name, values)
     }
+
+    fn select_query<T>(
+        &self,
+        table: &str,
+        q_string: String,
+        objects: &mut Vec<T>,
+    ) -> Result<(), String>
+    where
+        T: DeserializeOwned,
+    {
+        let mut vals: Vec<String> = Vec::new();
+        // this query pattern was taken from the sqlite crate docs: https://docs.rs/sqlite/0.24.1/sqlite/
+        let _stmt = self
+            .conn
+            .iterate(&q_string, |pairs| {
+                for &(_column, value) in pairs.iter() {
+                    vals.push(String::from(value.unwrap()));
+                }
+                true
+            })
+            .unwrap();
+
+        let chunks = vals.chunks(self.tables.get(table).unwrap().len());
+        for c in chunks {
+            let json: String = self.build_struct_json(table, c);
+            let object: T = serde_json::from_str(&json).unwrap();
+            objects.push(object);
+        }
+
+        Ok(())
+    }
 }
 
 fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
@@ -146,10 +173,20 @@ fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     values.pop();
     fields.push(')');
     values.push(')');
-    return format!("INSERT INTO {} {} VALUES {}", name, fields, values);
+    format!("INSERT INTO {} {} VALUES {}", name, fields, values)
 }
 
 fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let conditions = build_conditions(data);
+    format!("DELETE FROM {} WHERE {}", name, conditions)
+}
+
+fn where_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let conditions = build_conditions(data);
+    format!("SELECT * FROM {} WHERE {}", name, conditions)
+}
+
+fn build_conditions(data: (Vec<String>, Vec<String>)) -> String {
     let mut conditions = String::from("(");
     for i in 0..(data.0).len() {
         conditions.push_str(&format!("{}={} and ", (data.0)[i], (data.1)[i]))
@@ -157,7 +194,7 @@ fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     let trunc_val = conditions.len() - 4;
     conditions.truncate(trunc_val);
     conditions.push(')');
-    return format!("DELETE FROM {} WHERE {}", name, conditions);
+    conditions
 }
 
 //macro that parses user options for a sql! command

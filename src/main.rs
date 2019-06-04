@@ -60,7 +60,6 @@ fn main() {
     //can allow specificy one condtion per table column
     db.delete("Model", sql!(name = "Someotherguy", age = 10))
         .unwrap();
-    db.delete("Model", sql!(name = "Boris", age = 27)).unwrap();
 
     // This one should fail...
     let result2 = db.insert(
@@ -71,8 +70,13 @@ fn main() {
 
     let mut out: Vec<Model> = Vec::new();
     db.select_all("Model", &mut out).unwrap();
+
+    let mut filtered: Vec<Model> = Vec::new();
+    db.select_where("Model", &mut filtered, sql!(name = "Boris"))
+        .unwrap();
+    println!("filtered: {:?}", filtered);
     println!(
-        "IN:      {:?}\t{:?}\nDELETED: {:?}\nOUT: {:?}",
-        inp, j, inp, out
+        "IN:      {:?}\t{:?}\nDELETED: {:?}\nOUT: {:?}\nFILTERED: {:?}",
+        inp, j, inp, out, filtered
     );
 }
