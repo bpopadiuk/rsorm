@@ -1,19 +1,18 @@
 use migrate_table::MigrateTable;
 use migrate_table_derive::MigrateTable;
+use serde::Deserialize;
 mod lib;
 use std::fmt::Debug;
 
 #[allow(dead_code)]
-#[derive(Debug)]
-#[derive(MigrateTable)]
-struct Model{
+#[derive(MigrateTable, Deserialize, Debug)]
+struct Model {
     name: String,
     age: u64,
     birthday: String,
 }
 
 #[allow(dead_code)]
-//#[derive(Debug)]
 #[derive(MigrateTable)]
 struct BadModel {
     name: String,
@@ -27,13 +26,13 @@ fn main() {
 
     // Usually we'll just be calling it as an argument to the create_table() method though
     let mut db = lib::DB::new("some_dsn_here");
-    
+
     db.create_table(Model::generate_schema()).unwrap();
 
-    let mut obj = Model {
-        name: String::from("boris"),
-        age: 65,
-        birthday: String::from("sometime"),
+    let mut inp = Model {
+        name: "Boris".to_string(),
+        age: 27,
+        birthday: "someday".to_string(),
     };
 
     // Example of create_table returning an error when passed a model struct containing an illegal type
@@ -53,9 +52,11 @@ fn main() {
     //can allow specificy one condtion per table column
     let result = db.delete("Model", sql!(name="Jordan", age=10));
 
+    // This one should fail...
+    let result2 = db.insert("nonexistent", &mut inp);
+    assert!(result2.is_err());
 
-    let mut obj_vec: Vec<Model> = Vec::new();
-
-    //db.select("Model", &mut obj_vec).unwrap();
-
+    let mut out: Vec<Model> = Vec::new();
+    db.select_all("Model", &mut out).unwrap();
+    println!("IN:  {:?}\nOUT: {:?}", inp, out);
 }
