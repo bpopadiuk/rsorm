@@ -29,7 +29,7 @@ fn main() {
 
     db.create_table(Model::generate_schema()).unwrap();
 
-    let mut inp = Model {
+    let inp = Model {
         name: "Boris".to_string(),
         age: 27,
         birthday: "someday".to_string(),
@@ -38,22 +38,25 @@ fn main() {
     // Example of create_table returning an error when passed a model struct containing an illegal type
     let result = db.create_table(BadModel::generate_schema());
     assert!(result.is_err());
-    
-    
+
     //For Inserting items into the database, a user envokes the sql! macro
     //Since the macro reads in tokens directly, no rust object or refrences can be used
     //Any strings ot text data for the DB need to be wrapped in " "
-    let result = db.insert("Model", sql!(name="Jordan", age=8, birthday="idk"));
-    
+    db.insert("Model", sql!(name = "Jordan", age = 8, birthday = "idk"))
+        .unwrap();
+
     //Deleting items from the database looks just like inserting
     //All records that match the provided conditions will be deleted
     //SQLITE does not throw an error if no records match the conditions provided
     //Errors that arise will result from column names that are mispleed or don't exist
     //can allow specificy one condtion per table column
-    let result = db.delete("Model", sql!(name="Jordan", age=10));
+    db.delete("Model", sql!(name = "Jordan", age = 10)).unwrap();
 
     // This one should fail...
-    let result2 = db.insert("nonexistent", &mut inp);
+    let result2 = db.insert(
+        "nonexistent",
+        sql!(name = "Jordan", age = 8, birthday = "idk"),
+    );
     assert!(result2.is_err());
 
     let mut out: Vec<Model> = Vec::new();

@@ -1,7 +1,7 @@
 extern crate proc_macro;
 use serde::de::DeserializeOwned;
-use std::collections::{HashMap, HashSet};
 use sqlite;
+use std::collections::{HashMap, HashSet};
 
 pub struct DB {
     dsn: &'static str,
@@ -14,7 +14,7 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
-            conn: sqlite::open(dsn).unwrap()
+            conn: sqlite::open(dsn).unwrap(),
         }
     }
 
@@ -61,20 +61,6 @@ impl DB {
     where
         T: DeserializeOwned,
     {
-        // stub inserts since insert isn't implemented on this branch
-        self.conn
-            .execute(format!(
-                "INSERT INTO {} VALUES ('Boris', 27, 'someday')",
-                table
-            ))
-            .unwrap();
-        self.conn
-            .execute(format!(
-                "INSERT INTO {} VALUES ('Jordan', 27, 'otherday')",
-                table
-            ))
-            .unwrap();
-
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
@@ -100,18 +86,10 @@ impl DB {
             objects.push(object);
         }
 
-        // Delete the fake rows we inserted
-        self.conn
-            .execute(format!("DELETE FROM {} WHERE name = 'Boris'", table))
-            .unwrap();
-        self.conn
-            .execute(format!("DELETE FROM {} WHERE name = 'Jordan'", table))
-            .unwrap();
-
         Ok(())
     }
 
-    pub fn delete(&self, table: &str, data:(Vec<String>, Vec<String>)) -> Result<(), String> {
+    pub fn delete(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
         //called like this: db.delete("Model", sql!(field1=condition1, field2=condition2))
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         if !self.tables.contains_key(table) {
@@ -121,10 +99,6 @@ impl DB {
         self.conn.execute(&ds).unwrap();
         Ok(())
     }
-
-
-}
-
 
     fn build_struct_json(&self, table: &str, vals: &[String]) -> String {
         let mut json = String::from("{ ");
@@ -159,6 +133,7 @@ impl DB {
         values.pop();
         format!("CREATE TABLE IF NOT EXISTS {} ({} );", name, values)
     }
+}
 
 fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     let mut fields = String::from("(");
@@ -179,12 +154,11 @@ fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
     for i in 0..(data.0).len() {
         conditions.push_str(&format!("{}={} and ", (data.0)[i], (data.1)[i]))
     }
-    let trunc_val = conditions.len()-4;
+    let trunc_val = conditions.len() - 4;
     conditions.truncate(trunc_val);
     conditions.push(')');
     return format!("DELETE FROM {} WHERE {}", name, conditions);
 }
-
 
 //macro that parses user options for a sql! command
 //will parse tokens in the form of "field1 = value1, field2=value2, field3=value3"
