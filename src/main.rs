@@ -60,7 +60,6 @@ fn main() {
     //can allow specificy one condtion per table column
     db.delete("Model", sql!(name = "Someotherguy", age = 10))
         .unwrap();
-    // db.delete("Model", sql!(name = "Boris", age = 27)).unwrap();
 
     // This one should fail...
     let result2 = db.insert(
