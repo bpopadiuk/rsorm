@@ -1,6 +1,7 @@
 extern crate proc_macro;
 use serde::de::DeserializeOwned;
 use std::collections::{HashMap, HashSet};
+use sqlite;
 
 pub struct DB {
     dsn: &'static str,
@@ -13,7 +14,7 @@ impl DB {
         DB {
             dsn: dsn,
             tables: HashMap::new(),
-            conn: sqlite::open("testDB").unwrap(),
+            conn: sqlite::open(dsn).unwrap()
         }
     }
 
@@ -44,13 +45,15 @@ impl DB {
         Ok(())
     }
 
-    pub fn insert<T>(&self, table: &str, objects: &mut T) -> Result<(), String> {
-        // called like this: db.insert("Model", modelinstance)
+    pub fn insert(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
+        // called like this: db.insert("Model", sql!(field1= data1, field2= data2, field3=data3))
         // The 'table' argument will be used as a key to self.tables so that we know what fields object has
         // we'll still need some kind of macro to generate the code to retrieve each field's values though...
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
+        let is = insert_string(table, data);
+        self.conn.execute(&is).unwrap();
         Ok(())
     }
 
@@ -108,6 +111,21 @@ impl DB {
         Ok(())
     }
 
+    pub fn delete(&self, table: &str, data:(Vec<String>, Vec<String>)) -> Result<(), String> {
+        //called like this: db.delete("Model", sql!(field1=condition1, field2=condition2))
+        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
+        if !self.tables.contains_key(table) {
+            return Err(format!("DB does not contain table: {}", table));
+        }
+        let ds = delete_string(table, data);
+        self.conn.execute(&ds).unwrap();
+        Ok(())
+    }
+
+
+}
+
+
     fn build_struct_json(&self, table: &str, vals: &[String]) -> String {
         let mut json = String::from("{ ");
         let fields = self.tables.get(table).unwrap();
@@ -139,6 +157,50 @@ impl DB {
         }
 
         values.pop();
-        format!("create table if not exists {} ({} );", name, values)
+        format!("CREATE TABLE IF NOT EXISTS {} ({} );", name, values)
     }
+
+fn insert_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let mut fields = String::from("(");
+    let mut values = String::from("(");
+    for i in 0..(data.0).len() {
+        fields.push_str(&format!("{},", (data.0)[i]));
+        values.push_str(&format!("{},", (data.1)[i]));
+    }
+    fields.pop();
+    values.pop();
+    fields.push(')');
+    values.push(')');
+    return format!("INSERT INTO {} {} VALUES {}", name, fields, values);
+}
+
+fn delete_string(name: &str, data: (Vec<String>, Vec<String>)) -> String {
+    let mut conditions = String::from("(");
+    for i in 0..(data.0).len() {
+        conditions.push_str(&format!("{}={} and ", (data.0)[i], (data.1)[i]))
+    }
+    let trunc_val = conditions.len()-4;
+    conditions.truncate(trunc_val);
+    conditions.push(')');
+    return format!("DELETE FROM {} WHERE {}", name, conditions);
+}
+
+
+//macro that parses user options for a sql! command
+//will parse tokens in the form of "field1 = value1, field2=value2, field3=value3"
+//returns a tuple of string vectors, one for fields, one for values
+#[macro_export]
+macro_rules! sql {
+    ($($x:tt = $y:tt), *) => {
+        {
+            let mut fields:Vec<String> = Vec::new();
+            let mut data: Vec<String> = Vec::new();
+            $(
+                fields.push(stringify!($x).to_string());
+                let z = stringify!($y).replace("\"","'");
+                data.push(z);
+            )*
+            (fields, data)
+        }
+    };
 }
