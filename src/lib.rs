@@ -1,15 +1,31 @@
 extern crate proc_macro;
+extern crate serde;
 use serde::de::DeserializeOwned;
 use sqlite;
 use std::collections::{HashMap, HashSet};
+
+///
+/// A simple **sqlite** ORM.<br>
+/// A SQL Table is defined with a struct derived with the `MigrateTable` trait.<br>
+/// Insertions, Deletions, and Where clauses need to be wrapped with the `sql!` macro.<br>
+///
+///
+///
 
 pub struct DB {
     dsn: &'static str,
     tables: HashMap<String, Vec<(String, String)>>,
     conn: sqlite::Connection,
 }
-
+ 
 impl DB {
+    ///
+    /// Instantiate a DB isntance
+    ///
+    /// # Arguments
+    ///
+    /// * `dsn` - a filepath locating the database file, will create if it doesn't exist.
+    ///
     pub fn new(dsn: &'static str) -> DB {
         DB {
             dsn: dsn,
@@ -17,7 +33,14 @@ impl DB {
             conn: sqlite::open(dsn).unwrap(),
         }
     }
-
+    ///
+    /// Create a table to insert into the database.<br>
+    /// Requires a struct with the `MigrateTable` trait derived.<br>
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - the result of `generate_schema()` called on a struct derived with `MigrateTable` 
+    ///
     pub fn create_table(
         &mut self,
         schema: (String, Vec<(String, String)>),
@@ -44,11 +67,17 @@ impl DB {
         self.tables.insert(name, fields);
         Ok(())
     }
-
+    
+    ///
+    ///Inserts into the specifed table, the data provided
+    ///
+    /// # Arguments
+    /// * `table` - The name of a previously created table, as a string
+    /// * `data` - The data that is to be entered into the database.
+    ///    called with the `sql` macro
+    ///
     pub fn insert(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
-        // called like this: db.insert("Model", sql!(field1= data1, field2= data2, field3=data3))
-        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
-        // we'll still need some kind of macro to generate the code to retrieve each field's values though...
+    
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
@@ -62,6 +91,14 @@ impl DB {
         Ok(())
     }
 
+    ///
+    /// Select all records from table that match specified conditions 
+    ///
+    /// # Arguments
+    /// * `table` - The name of a previously created table, as a string
+    /// * `object` - a refrence to a generic emoty vector that will be populated with the records returned from the database.
+    /// * `data` - the conditions that will be matched against for selection, called with the `sql` macro.
+    /// 
     pub fn select_where<T>(
         &self,
         table: &str,
@@ -83,6 +120,13 @@ impl DB {
         self.select_query(table, q_string, objects)
     }
 
+    ///
+    /// Select all records from specified table 
+    ///
+    /// # Arguments
+    /// * `table` - The name of a previously created table, as a string
+    /// * `object` - a refrence to a generic emoty vector that will be populated with the records returned from the database
+    /// 
     pub fn select_all<T>(&self, table: &str, objects: &mut Vec<T>) -> Result<(), String>
     where
         T: DeserializeOwned,
@@ -95,9 +139,15 @@ impl DB {
         self.select_query(table, q_string, objects)
     }
 
+    ///
+    /// Deletes into from specifed table, all records that match the conditions given.
+    ///
+    /// # Arguments
+    /// * `table` - The name of a prebiously created table, as a string
+    /// * `data` - conditons to match for deleting rcords, called with the `sql` macro
+    ///
     pub fn delete(&self, table: &str, data: (Vec<String>, Vec<String>)) -> Result<(), String> {
-        //called like this: db.delete("Model", sql!(field1=condition1, field2=condition2))
-        // The 'table' argument will be used as a key to self.tables so that we know what fields object has
+      
         if !self.tables.contains_key(table) {
             return Err(format!("DB does not contain table: {}", table));
         }
@@ -229,9 +279,12 @@ fn build_conditions(data: (Vec<String>, Vec<String>)) -> String {
     conditions
 }
 
-//macro that parses user options for a sql! command
-//will parse tokens in the form of "field1 = value1, field2=value2, field3=value3"
-//returns a tuple of string vectors, one for fields, one for values
+/// macro that parses user options for a `sql!` command <br>
+/// * Will parse tokens in the form of `field1 = value1, field2 = value2, field3 = value3`<br>
+/// * Returns a tuple of string vectors, one for fields, one for values.<br>
+/// * The macro will match tokens exactly and iterpret text wrapped in " as as its own token.<br>
+/// * Used to parse values for `insert`, `select_where`, and `delete`.<br>
+///
 #[macro_export]
 macro_rules! sql {
     ($($x:tt = $y:tt), *) => {
@@ -303,7 +356,6 @@ mod tests {
         assert!(result.is_err());
         teardown();
     }
-
     fn test_insert_valid() {
         let db = setup();
         let result = db.insert(
